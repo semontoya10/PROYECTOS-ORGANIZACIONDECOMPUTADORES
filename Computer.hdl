@@ -1,0 +1,37 @@
+// This file is part of nand2tetris
+// and the book The Elements of Computing Systems
+// by Nisan and Schocken.
+
+// Hack Computer: CPU + ROM32K + Memory
+
+CHIP Computer {
+
+    IN reset;
+
+    PARTS:
+
+    // CPU
+    CPU(
+        inM=memOut,
+        instruction=instruction,
+        reset=reset,
+        outM=cpuOut,
+        writeM=writeM,
+        addressM=addressM,
+        pc=pc
+    );
+
+    // Memory
+    Memory(
+        in=cpuOut,
+        load=writeM,
+        address=addressM,
+        out=memOut
+    );
+
+    // Instruction memory
+    ROM32K(
+        address=pc,
+        out=instruction
+    );
+}

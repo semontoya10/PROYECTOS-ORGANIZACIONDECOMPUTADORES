@@ -1,0 +1,99 @@
+CHIP CPU {
+
+    IN  inM[16],         // input from Memory (M)
+        instruction[16], // current instruction
+        reset;           // reset signal
+
+    OUT outM[16],        // output to Memory
+        writeM,          // write to Memory?
+        addressM[15],    // address in Memory
+        pc[15];          // program counter
+
+    PARTS:
+
+    // =========================
+    // Identificación de instrucción
+    // =========================
+
+    Not(in=instruction[15], out=isAInstruction);
+    Not(in=isAInstruction, out=isCInstruction);
+
+    // =========================
+    // Registro A
+    // =========================
+
+    Mux16(a=instruction, b=aluOut, sel=isCInstruction, out=aIn);
+
+    Or(a=isAInstruction, b=instruction[5], out=loadA);
+
+    ARegister(in=aIn, load=loadA, out=aOut, out[0..14]=addressM);
+
+    // =========================
+    // Registro D
+    // =========================
+
+    And(a=isCInstruction, b=instruction[4], out=loadD);
+
+    DRegister(in=aluOut, load=loadD, out=dOut);
+
+    // =========================
+    // ALU
+    // =========================
+
+    Mux16(a=aOut, b=inM, sel=instruction[12], out=aluY);
+
+    ALU(
+        x=dOut,
+        y=aluY,
+        zx=instruction[11],
+        nx=instruction[10],
+        zy=instruction[9],
+        ny=instruction[8],
+        f=instruction[7],
+        no=instruction[6],
+        out=aluOut,
+        zr=zr,
+        ng=ng
+    );
+
+    // =========================
+    // Salidas
+    // =========================
+
+    And(a=isCInstruction, b=instruction[3], out=writeM);
+
+    // outM corregido (sin errores de bus)
+    Mux16(a=aluOut, b=aluOut, sel=false, out=outM);
+
+    // =========================
+    // Jump logic
+    // =========================
+
+    Not(in=zr, out=notZr);
+    Not(in=ng, out=notNg);
+
+    And(a=notNg, b=notZr, out=gt); // >0
+    And(a=zr, b=true, out=eq);     // ==0
+    And(a=ng, b=true, out=lt);     // <0
+
+    And(a=instruction[0], b=gt, out=jgt);
+    And(a=instruction[1], b=eq, out=jeq);
+    And(a=instruction[2], b=lt, out=jlt);
+
+    Or(a=jgt, b=jeq, out=jump1);
+    Or(a=jump1, b=jlt, out=jump);
+
+    // =========================
+    // Program Counter (PC)
+    // =========================
+
+    And(a=isCInstruction, b=jump, out=pcLoad);
+
+    PC(
+    in=aOut,
+    load=pcLoad,
+    inc=true,
+    reset=reset,
+    out[0..14]=pc
+);
+}
