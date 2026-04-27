@@ -1,0 +1,69 @@
+/**
+ * Shifter chip: Shifts a 16-bit input left or right.
+ * direction = 0: Left shift (in[0] becomes 0, in[15] goes to result)
+ * direction = 1: Right shift (in[15] becomes 0, in[0] goes to result)
+ */
+
+CHIP Shifter {
+    IN  in[16], direction;
+    OUT out[16], result;
+
+    PARTS:
+    // ===== RESULT =====
+    // Si direction = 0 → result = in[15] (Left shift)
+    // Si direction = 1 → result = in[0]  (Right shift)
+    Mux(a=in[15], b=in[0], sel=direction, out=result);
+
+    // ===== SHIFT =====
+    // Para cada bit usamos un Mux:
+    // direction = 0 → izquierda (out[i] = in[i-1])
+    // direction = 1 → derecha   (out[i] = in[i+1])
+
+    // out[0]
+    Mux(a=false, b=in[1], sel=direction, out=out[0]);
+
+    // out[1]
+    Mux(a=in[0], b=in[2], sel=direction, out=out[1]);
+
+    // out[2]
+    Mux(a=in[1], b=in[3], sel=direction, out=out[2]);
+
+    // out[3]
+    Mux(a=in[2], b=in[4], sel=direction, out=out[3]);
+
+    // out[4]
+    Mux(a=in[3], b=in[5], sel=direction, out=out[4]);
+
+    // out[5]
+    Mux(a=in[4], b=in[6], sel=direction, out=out[5]);
+
+    // out[6]
+    Mux(a=in[5], b=in[7], sel=direction, out=out[6]);
+
+    // out[7]
+    Mux(a=in[6], b=in[8], sel=direction, out=out[7]);
+
+    // out[8]
+    Mux(a=in[7], b=in[9], sel=direction, out=out[8]);
+
+    // out[9]
+    Mux(a=in[8], b=in[10], sel=direction, out=out[9]);
+
+    // out[10]
+    Mux(a=in[9], b=in[11], sel=direction, out=out[10]);
+
+    // out[11]
+    Mux(a=in[10], b=in[12], sel=direction, out=out[11]);
+
+    // out[12]
+    Mux(a=in[11], b=in[13], sel=direction, out=out[12]);
+
+    // out[13]
+    Mux(a=in[12], b=in[14], sel=direction, out=out[13]);
+
+    // out[14]
+    Mux(a=in[13], b=in[15], sel=direction, out=out[14]);
+
+    // out[15]
+    Mux(a=in[14], b=false, sel=direction, out=out[15]);
+}
