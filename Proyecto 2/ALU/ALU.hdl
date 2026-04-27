@@ -6,38 +6,79 @@ CHIP ALU {
     OUT 
         out[16],
         zr,
-        ng;
+        ng,
+        result;
 
     PARTS:
+
+    // =========================
+    // DETECTAR MODO SHIFTER
+    // zx=0 nx=0 zy=0 ny=0 no=1
+    // =========================
+
+    Not(in=zx, out=notzx);
+    Not(in=nx, out=notnx);
+    Not(in=zy, out=notzy);
+    Not(in=ny, out=notny);
+
+    And(a=notzx, b=notnx, out=a1);
+    And(a=notzy, b=notny, out=a2);
+    And(a=a1, b=a2, out=a3);
+    And(a=a3, b=no, out=isShift);
+
+    // =========================
+    // ALU NORMAL (la que ya hiciste)
+    // =========================
+
     // zx
     Mux16(a=x, b=false, sel=zx, out=x1);
 
     // nx
-    Not16(in=x1, out=notx);
-    Mux16(a=x1, b=notx, sel=nx, out=x2);
+    Not16(in=x1, out=notx1);
+    Mux16(a=x1, b=notx1, sel=nx, out=x2);
 
     // zy
     Mux16(a=y, b=false, sel=zy, out=y1);
 
     // ny
-    Not16(in=y1, out=noty);
-    Mux16(a=y1, b=noty, sel=ny, out=y2);
+    Not16(in=y1, out=noty1);
+    Mux16(a=y1, b=noty1, sel=ny, out=y2);
 
-    // AND y ADD
-    And16(a=x2, b=y2, out=andOut);
-    Add16(a=x2, b=y2, out=addOut);
-    Mux16(a=andOut, b=addOut, sel=f, out=fOut);
+    // f
+    And16(a=x2, b=y2, out=andxy);
+    Add16(a=x2, b=y2, out=addxy);
+    Mux16(a=andxy, b=addxy, sel=f, out=outALU);
 
     // no
-    Not16(in=fOut, out=notOut);
-    Mux16(a=fOut, b=notOut, sel=no, out=out, out[0..7]=outls, out[8..15]=outms, out[15]=outsign);
+    Not16(in=outALU, out=notOutALU);
+    Mux16(a=outALU, b=notOutALU, sel=no, out=finalALU);
 
-    // zr (out == 0)
-    Or8Way(in=outls, out=o1);
-    Or8Way(in=outms, out=o2);
-    Or(a=o1, b=o2, out=o3);
-    Not(in=o3, out=zr);
+    // =========================
+    // SHIFTER
+    // =========================
 
-    // ng (bit más significativo)
-    And(a=outsign, b=true, out=ng);
+    Shifter(in=x, direction=f, out=shiftOut, result=shiftResult);
+
+    // =========================
+    // SELECCIÓN FINAL
+    // =========================
+
+    // out
+    Mux16(a=finalALU, b=shiftOut, sel=isShift, out=out, out[0..7]=outLow, out[8..15]=outHigh, out[15]=ng);
+
+    // result
+    Mux(a=false, b=shiftResult, sel=isShift, out=result);
+
+    // =========================
+    // FLAGS
+    // =========================
+
+    // zr
+    Or8Way(in=outLow, out=orLow);
+    Or8Way(in=outHigh, out=orHigh);
+    Or(a=orLow, b=orHigh, out=orOut);
+    Not(in=orOut, out=zr);
+
+    // ng ya está asignado directamente desde el pin out[15] en el Mux16 final
+
 }
